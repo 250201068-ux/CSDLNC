@@ -12,10 +12,10 @@ services:
       - "8546:8546"
       - "30303:30303"
     volumes:
-      - ./genesis.json:/genesis.json
-      - ./password.txt:/password.txt
-      - ./keystore:/keystore
-      - ./static-nodes.json:/root/.ethereum/static-nodes.json
+      - ./docker/genesis.json:/genesis.json
+      - ./docker/password.txt:/password.txt
+      - ./docker/keystore:/keystore
+      - ./docker/static-nodes.json:/root/.ethereum/static-nodes.json
       - node1-data:/root/.ethereum
     entrypoint: /bin/sh
     command: >
@@ -62,8 +62,8 @@ services:
       - "8548:8546"
       - "30304:30303"
     volumes:
-      - ./genesis.json:/genesis.json
-      - ./static-nodes.json:/root/.ethereum/static-nodes.json
+      - ./docker/genesis.json:/genesis.json
+      - ./docker/static-nodes.json:/root/.ethereum/static-nodes.json
       - node2-data:/root/.ethereum
     entrypoint: /bin/sh
     command: >
@@ -104,8 +104,8 @@ services:
       - "8550:8546"
       - "30305:30303"
     volumes:
-      - ./genesis.json:/genesis.json
-      - ./static-nodes.json:/root/.ethereum/static-nodes.json
+      - ./docker/genesis.json:/genesis.json
+      - ./docker/static-nodes.json:/root/.ethereum/static-nodes.json
       - node3-data:/root/.ethereum
     entrypoint: /bin/sh
     command: >
@@ -146,8 +146,8 @@ services:
       - "8552:8546"
       - "30306:30303"
     volumes:
-      - ./genesis.json:/genesis.json
-      - ./static-nodes.json:/root/.ethereum/static-nodes.json
+      - ./docker/genesis.json:/genesis.json
+      - ./docker/static-nodes.json:/root/.ethereum/static-nodes.json
       - node4-data:/root/.ethereum
     entrypoint: /bin/sh
     command: >
@@ -189,8 +189,8 @@ services:
       - "8554:8546"
       - "30307:30303"
     volumes:
-      - ./genesis.json:/genesis.json
-      - ./static-nodes.json:/root/.ethereum/static-nodes.json
+      - ./docker/genesis.json:/genesis.json
+      - ./docker/static-nodes.json:/root/.ethereum/static-nodes.json
       - node5-data:/root/.ethereum
     entrypoint: /bin/sh
     command: >
@@ -223,7 +223,7 @@ services:
 
   backend:
     build:
-      context: ../java-app
+      context: ./java-app
       dockerfile: Dockerfile
     container_name: blockchain-backend
     networks:
@@ -247,7 +247,7 @@ services:
 
   frontend:
     build:
-      context: ../frontend
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: blockchain-frontend
     networks:

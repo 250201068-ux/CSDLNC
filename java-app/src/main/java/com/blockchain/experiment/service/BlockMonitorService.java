@@ -3,12 +3,14 @@ package com.blockchain.experiment.service;
 import com.blockchain.experiment.repository.EthereumNodeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 import org.web3j.protocol.core.methods.response.EthBlock;
 
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
+@Service
 public class BlockMonitorService {
     private static final Logger logger = LoggerFactory.getLogger(BlockMonitorService.class);
     private final EthereumNodeRepository nodeRepository;

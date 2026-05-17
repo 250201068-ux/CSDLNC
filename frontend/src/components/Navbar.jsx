@@ -9,10 +9,22 @@ export default function Navbar() {
           Accounts
         </NavLink>
         <NavLink to="/create" className={({ isActive }) => isActive ? 'active' : ''}>
-          Create Account
+          Create
         </NavLink>
         <NavLink to="/transaction" className={({ isActive }) => isActive ? 'active' : ''}>
-          Send Transaction
+          Send TX
+        </NavLink>
+        <NavLink to="/blocks" className={({ isActive }) => isActive ? 'active' : ''}>
+          Blocks
+        </NavLink>
+        <NavLink to="/transactions" className={({ isActive }) => isActive ? 'active' : ''}>
+          Transactions
+        </NavLink>
+        <NavLink to="/network" className={({ isActive }) => isActive ? 'active' : ''}>
+          Network
+        </NavLink>
+        <NavLink to="/experiments" className={({ isActive }) => isActive ? 'active' : ''}>
+          Experiments
         </NavLink>
       </div>
     </nav>

@@ -24,27 +24,45 @@ import java.util.Set;
 public class EthereumNodeRepository {
     private static final Logger logger = LoggerFactory.getLogger(EthereumNodeRepository.class);
 
-    private static final String NODE1_URL = "http://localhost:8545";
-    private static final String NODE2_URL = "http://localhost:8547";
-    private static final String NODE3_URL = "http://localhost:8549";
+    private final String node1Url;
+    private final String node2Url;
+    private final String node3Url;
+    private final String node4Url;
+    private final String node5Url;
 
     private final Map<String, Web3j> nodes = new LinkedHashMap<>();
 
-    public EthereumNodeRepository() {
+    public EthereumNodeRepository(
+            @org.springframework.beans.factory.annotation.Value("${ethereum.node1.url:http://localhost:8545}") String node1Url,
+            @org.springframework.beans.factory.annotation.Value("${ethereum.node2.url:http://localhost:8547}") String node2Url,
+            @org.springframework.beans.factory.annotation.Value("${ethereum.node3.url:http://localhost:8549}") String node3Url,
+            @org.springframework.beans.factory.annotation.Value("${ethereum.node4.url:http://localhost:8551}") String node4Url,
+            @org.springframework.beans.factory.annotation.Value("${ethereum.node5.url:http://localhost:8553}") String node5Url) {
+        this.node1Url = node1Url;
+        this.node2Url = node2Url;
+        this.node3Url = node3Url;
+        this.node4Url = node4Url;
+        this.node5Url = node5Url;
         initializeConnections();
     }
 
     private void initializeConnections() {
         logger.info("Initializing connections to Ethereum nodes...");
         try {
-            nodes.put("node1", Web3j.build(new HttpService(NODE1_URL)));
-            logger.info("Connected to Node1 (Validator) at {}", NODE1_URL);
+            nodes.put("node1", Web3j.build(new HttpService(node1Url)));
+            logger.info("Connected to Node1 (Validator) at {}", node1Url);
 
-            nodes.put("node2", Web3j.build(new HttpService(NODE2_URL)));
-            logger.info("Connected to Node2 (Full) at {}", NODE2_URL);
+            nodes.put("node2", Web3j.build(new HttpService(node2Url)));
+            logger.info("Connected to Node2 (Full) at {}", node2Url);
 
-            nodes.put("node3", Web3j.build(new HttpService(NODE3_URL)));
-            logger.info("Connected to Node3 (Recovery) at {}", NODE3_URL);
+            nodes.put("node3", Web3j.build(new HttpService(node3Url)));
+            logger.info("Connected to Node3 (Recovery) at {}", node3Url);
+
+            nodes.put("node4", Web3j.build(new HttpService(node4Url)));
+            logger.info("Connected to Node4 (Observer) at {}", node4Url);
+
+            nodes.put("node5", Web3j.build(new HttpService(node5Url)));
+            logger.info("Connected to Node5 (Rogue) at {}", node5Url);
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize Web3j connections", e);
         }

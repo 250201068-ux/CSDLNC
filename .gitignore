@@ -10,14 +10,12 @@ dependency-reduced-pom.xml
 # ==========================================
 # Sensitive / secret files
 # ==========================================
-# Ethereum node passwords
-docker/password*.txt
-docker/password.txt
+# Ethereum node passwords (test/demo chain only — well-known Hardhat test key, safe to commit)
 docker/PASSWORDS.md
 docker/PASSWORD_REFERENCE.txt
 
-# Ethereum keystore (private keys) - NEVER commit
-docker/keystore/
+# Ethereum keystore is needed for deployment (test chain with well-known Hardhat key)
+# docker/keystore/
 
 # Blockchain node chain data
 docker/nodes/
@@ -88,3 +86,6 @@ tmpclaude-*
 # Misplaced IDE files in src/
 # ==========================================
 java-app/src/.idea/
+
+# Runtime data with private keys
+java-app/data/
