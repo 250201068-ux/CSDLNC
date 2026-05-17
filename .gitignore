@@ -88,3 +88,6 @@ tmpclaude-*
 # Misplaced IDE files in src/
 # ==========================================
 java-app/src/.idea/
+
+# Runtime data with private keys
+java-app/data/

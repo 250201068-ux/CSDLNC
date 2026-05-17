@@ -15,6 +15,7 @@ services:
       - ./genesis.json:/genesis.json
       - ./password.txt:/password.txt
       - ./keystore:/keystore
+      - ./static-nodes.json:/root/.ethereum/static-nodes.json
       - node1-data:/root/.ethereum
     entrypoint: /bin/sh
     command: >
@@ -62,6 +63,7 @@ services:
       - "30304:30303"
     volumes:
       - ./genesis.json:/genesis.json
+      - ./static-nodes.json:/root/.ethereum/static-nodes.json
       - node2-data:/root/.ethereum
     entrypoint: /bin/sh
     command: >
@@ -103,6 +105,7 @@ services:
       - "30305:30303"
     volumes:
       - ./genesis.json:/genesis.json
+      - ./static-nodes.json:/root/.ethereum/static-nodes.json
       - node3-data:/root/.ethereum
     entrypoint: /bin/sh
     command: >
@@ -132,6 +135,129 @@ services:
     depends_on:
       - node1-validator
 
+  node4-observer:
+    image: ethereum/client-go:v1.13.15
+    container_name: eth-node4-observer
+    hostname: node4
+    networks:
+      - eth-private-net
+    ports:
+      - "8551:8545"
+      - "8552:8546"
+      - "30306:30303"
+    volumes:
+      - ./genesis.json:/genesis.json
+      - ./static-nodes.json:/root/.ethereum/static-nodes.json
+      - node4-data:/root/.ethereum
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      if [ ! -f /root/.ethereum/genesis_initialized ]; then
+        geth init --datadir /root/.ethereum /genesis.json;
+        touch /root/.ethereum/genesis_initialized;
+      fi;
+      exec geth
+      --networkid 2025
+      --http
+      --http.addr 0.0.0.0
+      --http.port 8545
+      --http.api eth,net,web3,personal,admin,debug
+      --http.corsdomain '*'
+      --ws
+      --ws.addr 0.0.0.0
+      --ws.port 8546
+      --ws.api eth,net,web3,personal,admin,debug
+      --ws.origins '*'
+      --datadir /root/.ethereum
+      --allow-insecure-unlock
+      --nodiscover
+      --syncmode full
+      --maxpeers 25
+      --verbosity 3
+      "
+    depends_on:
+      - node1-validator
+
+  node5-rogue:
+    image: ethereum/client-go:v1.13.15
+    container_name: eth-node5-rogue
+    hostname: node5
+    networks:
+      - eth-private-net
+    ports:
+      - "8553:8545"
+      - "8554:8546"
+      - "30307:30303"
+    volumes:
+      - ./genesis.json:/genesis.json
+      - ./static-nodes.json:/root/.ethereum/static-nodes.json
+      - node5-data:/root/.ethereum
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      if [ ! -f /root/.ethereum/genesis_initialized ]; then
+        geth init --datadir /root/.ethereum /genesis.json;
+        touch /root/.ethereum/genesis_initialized;
+      fi;
+      exec geth
+      --networkid 2025
+      --http
+      --http.addr 0.0.0.0
+      --http.port 8545
+      --http.api eth,net,web3,personal,admin,debug
+      --http.corsdomain '*'
+      --ws
+      --ws.addr 0.0.0.0
+      --ws.port 8546
+      --ws.api eth,net,web3,personal,admin,debug
+      --ws.origins '*'
+      --datadir /root/.ethereum
+      --allow-insecure-unlock
+      --nodiscover
+      --syncmode full
+      --maxpeers 25
+      --verbosity 3
+      "
+    depends_on:
+      - node1-validator
+
+  backend:
+    build:
+      context: ../java-app
+      dockerfile: Dockerfile
+    container_name: blockchain-backend
+    networks:
+      - eth-private-net
+    ports:
+      - "8080:8080"
+    environment:
+      - API_PORT=8080
+      - ETHEREUM_NODE1_URL=http://eth-node1-validator:8545
+      - ETHEREUM_NODE2_URL=http://eth-node2-full:8545
+      - ETHEREUM_NODE3_URL=http://eth-node3-recovery:8545
+      - ETHEREUM_NODE4_URL=http://eth-node4-observer:8545
+      - ETHEREUM_NODE5_URL=http://eth-node5-rogue:8545
+    depends_on:
+      - node1-validator
+      - node2-full
+      - node3-recovery
+      - node4-observer
+      - node5-rogue
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: blockchain-frontend
+    networks:
+      - eth-private-net
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
 networks:
   eth-private-net:
     driver: bridge
@@ -140,3 +266,5 @@ volumes:
   node1-data:
   node2-data:
   node3-data:
+  node4-data:
+  node5-data:
