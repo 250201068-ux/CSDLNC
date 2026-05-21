@@ -1,463 +1,345 @@
-# Blockchain Immutability & Fault Tolerance Experiment
+# Thực Nghiệm Blockchain — Bất Biến & Chịu Lỗi
 
-A comprehensive demonstration of blockchain immutability, synchronization, and fault tolerance using a private Ethereum network with three nodes and a Java Web3j application.
+Demo mạng Ethereum private 5 node với backend Spring Boot và frontend React, phục vụ thực nghiệm các tính chất của blockchain: bất biến dữ liệu, đồng bộ phân tán và chịu lỗi.
 
-## 📋 Table of Contents
+---
 
-- [Overview](#overview)
-- [System Architecture](#system-architecture)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Experimental Scenarios](#experimental-scenarios)
-- [Project Structure](#project-structure)
-- [Usage Guide](#usage-guide)
-- [Troubleshooting](#troubleshooting)
-- [Expected Results](#expected-results)
+## Mục lục
 
-## 🎯 Overview
+- [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
+- [Yêu cầu cài đặt](#yêu-cầu-cài-đặt)
+- [Cài đặt nhanh (Docker Compose)](#cài-đặt-nhanh-docker-compose)
+- [Cài đặt thủ công](#cài-đặt-thủ-công)
+- [Cấu trúc project](#cấu-trúc-project)
+- [API Endpoints](#api-endpoints)
+- [Tài khoản được nạp sẵn ETH](#tài-khoản-được-nạp-sẵn-eth)
+- [Xử lý sự cố](#xử-lý-sự-cố)
 
-This experiment demonstrates three fundamental blockchain properties:
+---
 
-1. **Immutability**: Historical data cannot be altered
-2. **Synchronization**: All nodes maintain consistent state
-3. **Fault Tolerance**: Network continues operating despite node failures
-
-### Experimental Objectives
-
-- Observe blockchain synchronization across multiple nodes
-- Simulate node failure and recovery
-- Verify data consistency and immutability
-- Demonstrate blockchain resilience
-
-## 🏗️ System Architecture
+## Kiến trúc hệ thống
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Java Application (Web3j)                 │
-│                                                             │
-│  • Transaction Submission                                   │
-│  • Block Monitoring                                         │
-│  • Synchronization Verification                             │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ├────────┬────────┬────────┐
-                            ▼        ▼        ▼        │
-                      ┌─────────────────────────────┐  │
-                      │  Private Ethereum Network   │  │
-                      │  (Network ID: 2025)         │  │
-                      └─────────────────────────────┘  │
-                            │                           │
-        ┌───────────────────┼───────────────────┐      │
-        ▼                   ▼                   ▼       │
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│   Node 1     │◄──►│   Node 2     │◄──►│   Node 3     │
-│  Validator   │    │  Full Node   │    │  Recovery    │
-│   Miner      │    │              │    │  Test Node   │
-│              │    │              │    │              │
-│ Port: 8545   │    │ Port: 8547   │    │ Port: 8549   │
-└──────────────┘    └──────────────┘    └──────────────┘
+┌──────────────────────────────────────────────────────┐
+│           Frontend React (port 3000)                 │
+│  Accounts / Transactions / Block Explorer / Network  │
+└──────────────────────┬───────────────────────────────┘
+                       │ HTTP
+┌──────────────────────▼───────────────────────────────┐
+│        Backend Spring Boot (port 8080)               │
+│        Web3j 4.10.3 — REST API + Swagger UI          │
+└──────┬──────┬──────┬──────┬──────────────────────────┘
+       │      │      │      │  JSON-RPC
+  ┌────▼─┐ ┌──▼──┐ ┌▼────┐ ┌▼────┐ ┌────────┐
+  │node1 │ │node2│ │node3│ │node4│ │ node5  │
+  │8545  │ │8547 │ │8549 │ │8551 │ │ 8553   │
+  │Signer│ │Full │ │Recov│ │Obs. │ │ Rogue  │
+  └──────┘ └─────┘ └─────┘ └─────┘ └────────┘
+        Mạng nội bộ Docker (eth-private-net)
+        Chain ID: 2025 | Clique PoA | 5 giây/block
 ```
 
-### Node Roles
+| Node | Container | Cổng RPC | Vai trò |
+|------|-----------|----------|---------|
+| node1 | eth-node1-validator | 8545 | Validator/Miner (Clique signer) |
+| node2 | eth-node2-full | 8547 | Full node |
+| node3 | eth-node3-recovery | 8549 | Test tắt/bật (fault tolerance) |
+| node4 | eth-node4-observer | 8551 | Observer read-only |
+| node5 | eth-node5-rogue | 8553 | Thử nghiệm node giả mạo |
 
-- **Node 1 (Validator/Miner)**: Mines blocks and validates transactions
-- **Node 2 (Full Node)**: Maintains complete blockchain copy, participates in consensus
-- **Node 3 (Recovery Node)**: Used for offline/recovery testing scenarios
+---
 
-## 📦 Prerequisites
+## Yêu cầu cài đặt
 
-### Required Software
+| Phần mềm | Phiên bản tối thiểu | Kiểm tra |
+|----------|---------------------|---------|
+| Docker | 20.10+ | `docker --version` |
+| Docker Compose | 2.0+ (plugin) | `docker compose version` |
+| Java JDK | 17+ | `java -version` |
+| Apache Maven | 3.6+ | `mvn -version` |
+| Node.js *(frontend thủ công)* | 18+ | `node -v` |
 
-- **Docker** (v20.10+) & **Docker Compose** (v2.0+)
-- **Java Development Kit** (JDK 21 or higher)
-- **Apache Maven** (v3.6+)
-- **Bash** (for running scripts)
+> **Lưu ý**: Maven 3.9.9 đã được bundled trong `java-app/.tools/`. Có thể dùng trực tiếp nếu chưa cài Maven hệ thống.
 
-### System Requirements
+### RAM & Disk
 
-- 4GB RAM minimum (8GB recommended)
-- 10GB free disk space
-- Linux/macOS/Windows with WSL
+- RAM: tối thiểu 4 GB (khuyến nghị 8 GB)
+- Disk: tối thiểu 5 GB trống
 
-### Installation Verification
+---
+
+## Cài đặt nhanh (Docker Compose)
+
+Cách nhanh nhất — Docker Compose sẽ build và khởi động toàn bộ hệ thống (5 node Ethereum + backend + frontend).
+
+### Bước 1 — Clone project
 
 ```bash
-# Verify Docker
-docker --version
-docker-compose --version
-
-# Verify Java
-java -version
-
-# Verify Maven
-mvn -version
-```
-
-## 🚀 Installation
-
-### 1. Clone or Download Project
-
-```bash
+git clone <repo-url>
 cd "CSDLNC Demo"
 ```
 
-### 2. Make Scripts Executable (Linux/macOS)
+### Bước 2 — Khởi động toàn bộ hệ thống
 
 ```bash
-chmod +x scripts/*.sh
+docker compose up --build -d
 ```
 
-### 3. Initialize the Ethereum Network
+Lần đầu chạy sẽ mất 2–5 phút để tải image và build. Theo dõi tiến trình:
 
 ```bash
-cd docker
-bash ../scripts/init-network.sh
+docker compose logs -f
 ```
 
-This script will:
-- Stop any existing containers
-- Clean old blockchain data
-- Start 3 Ethereum nodes
-- Initialize genesis blocks
-- Connect nodes as peers
-
-### 4. Compile Java Application
+### Bước 3 — Kiểm tra hệ thống đã chạy
 
 ```bash
-cd ../java-app
-mvn clean package
+# Xem tất cả container đang chạy
+docker compose ps
+
+# Kiểm tra backend API
+curl http://localhost:8080/api/blockchain/sync-status
+
+# Mở frontend
+# Trình duyệt: http://localhost:3000
+# Swagger UI:  http://localhost:8080/swagger-ui.html
 ```
 
-## ⚡ Quick Start
-
-### Option 1: Interactive Menu (Recommended)
+### Dừng hệ thống
 
 ```bash
-bash scripts/run-experiment.sh
+# Dừng (giữ dữ liệu)
+docker compose down
+
+# Dừng và xóa toàn bộ dữ liệu blockchain
+docker compose down -v
 ```
 
-This launches an interactive menu where you can:
-- Run individual scenarios
-- Check network status
-- Verify blockchain state
-- Monitor synchronization
+---
 
-### Option 2: Manual Execution
+## Cài đặt thủ công
+
+Dùng khi cần debug từng thành phần riêng lẻ.
+
+### Bước 1 — Khởi động mạng Ethereum
 
 ```bash
-# Start the network
-cd docker
-bash ../scripts/init-network.sh
+# Từ thư mục gốc project
+docker compose up -d node1-validator node2-full node3-recovery node4-observer node5-rogue
 
-# Compile and run Java application
-cd ../java-app
-mvn clean package
+# Chờ ~10 giây rồi kiểm tra nodes
+curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"net_peerCount","params":[],"id":1}' \
+  http://localhost:8545
+# Kết quả: "result":"0x4" (4 peers) là thành công
+```
+
+### Bước 2 — Build và chạy Backend
+
+```bash
+cd java-app
+
+# Build (bỏ qua tests)
+mvn clean package -DskipTests
+
+# Chạy
 java -jar target/ethereum-fault-tolerance-1.0-SNAPSHOT.jar
 ```
 
-## 🧪 Experimental Scenarios
+Hoặc dùng Maven bundled sẵn:
 
-### Scenario 1: Initial Synchronization Test
+```bash
+# Windows
+.tools\apache-maven-3.9.9\bin\mvn.cmd clean package -DskipTests
 
-**Objective**: Verify all nodes synchronize when a new block is created
+# Linux/macOS
+.tools/apache-maven-3.9.9/bin/mvn clean package -DskipTests
+```
 
-**Steps**:
-1. All three nodes are online
-2. Submit transaction from Java application
-3. Observe block creation on Node 1
-4. Verify Nodes 2 and 3 synchronize the new block
-5. Confirm block hash consistency
+Backend sẽ chạy trên `http://localhost:8080`.
 
-**Expected Result**: All nodes report identical block number and hash
+### Bước 3 — Chạy Frontend
 
----
+```bash
+cd frontend
 
-### Scenario 2: Node Failure Simulation
+# Cài dependencies (lần đầu)
+npm install
 
-**Objective**: Simulate a node going offline
+# Chạy dev server
+npm run dev
+```
 
-**Steps**:
-1. Check current network status
-2. Shutdown Node 3:
-   ```bash
-   docker-compose stop eth-node3-recovery
-   ```
-3. Verify Node 3 is offline
-4. Confirm Nodes 1 and 2 continue operating
+Frontend sẽ chạy trên `http://localhost:5173` (dev) hoặc `http://localhost:3000` (Docker).
 
-**Expected Result**: Network continues with 2 nodes; Node 3 is unreachable
+#### Cấu hình URL backend
 
----
+Tạo file `.env` trong thư mục `frontend/`:
 
-### Scenario 3: Transactions While Node Offline
-
-**Objective**: Submit transactions while one node is down
-
-**Steps**:
-1. With Node 3 still offline, submit 5-10 transactions
-2. Observe blocks being mined on Nodes 1 and 2
-3. Record block numbers and hashes
-4. Verify Nodes 1 and 2 remain synchronized
-
-**Expected Result**: Nodes 1 and 2 continue normal operation; blockchain grows despite Node 3 being offline
+```env
+VITE_API_BASE_URL=http://localhost:8080
+```
 
 ---
 
-### Scenario 4: Recovery & Re-synchronization
-
-**Objective**: Demonstrate automatic blockchain recovery
-
-**Steps**:
-1. Record current block numbers (Node 1, Node 2)
-2. Restart Node 3:
-   ```bash
-   docker-compose start eth-node3-recovery
-   ```
-3. Monitor Node 3 synchronization progress
-4. Wait for Node 3 to catch up
-5. Verify all nodes have identical blockchain state
-6. Compare block hashes to ensure immutability
-
-**Expected Result**:
-- Node 3 automatically downloads missing blocks
-- Final block number matches Nodes 1 and 2
-- All block hashes are identical (no data corruption)
-
-## 📁 Project Structure
+## Cấu trúc project
 
 ```
 CSDLNC Demo/
+├── docker-compose.yml          # Orchestration toàn bộ hệ thống
 ├── docker/
-│   ├── docker-compose.yml      # Docker orchestration config
-│   └── genesis.json            # Genesis block configuration
+│   ├── genesis.json            # Cấu hình genesis block (Chain ID 2025)
+│   ├── static-nodes.json       # Danh sách peer tĩnh cho P2P
+│   ├── keystore/               # Keystore của validator account
+│   └── password.txt            # Mật khẩu unlock validator
 ├── java-app/
+│   ├── pom.xml                 # Maven: Spring Boot 3.3.5 + Web3j 4.10.3
+│   ├── Dockerfile
+│   ├── src/main/java/com/blockchain/experiment/
+│   │   ├── Application.java
+│   │   ├── controller/         # REST controllers (Blockchain, Transaction, Account, Experiment)
+│   │   ├── service/            # Business logic (BlockMonitor, Transaction, Account, Experiment)
+│   │   ├── repository/         # EthereumNodeRepository, AccountRepository
+│   │   └── config/             # CORS, Exception handler
+│   └── src/main/resources/
+│       └── application.properties  # Cấu hình port và URL các node
+├── frontend/
 │   ├── src/
-│   │   ├── Web3jClient.java         # Multi-node connection manager
-│   │   ├── TransactionManager.java  # Transaction submission
-│   │   ├── BlockMonitor.java        # Synchronization tracking
-│   │   ├── ExperimentRunner.java    # Main application
-│   │   └── logback.xml             # Logging configuration
-│   └── pom.xml                 # Maven dependencies
+│   │   ├── App.jsx
+│   │   ├── pages/              # AccountsList, CreateAccount, Transaction, BlockExplorer, NetworkStatus, Experiments
+│   │   ├── components/         # Navbar, AccountCard, AlertMessage, LoadingSpinner
+│   │   └── services/           # Axios API clients
+│   └── .env.example
 ├── scripts/
-│   ├── init-network.sh         # Network initialization
-│   ├── run-experiment.sh       # Application runner
-│   └── verify-sync.sh          # Synchronization checker
-├── docs/
-│   └── experiment-results.md   # Results documentation
-└── README.md                   # This file
+│   ├── run-experiment.sh       # Chạy thực nghiệm có menu
+│   └── verify-sync.sh          # Kiểm tra đồng bộ nhanh
+└── docs/
+    └── experiment-results.md
 ```
-
-## 📖 Usage Guide
-
-### Starting the Network
-
-```bash
-cd docker
-bash ../scripts/init-network.sh
-```
-
-### Checking Network Status
-
-```bash
-# Using script
-bash scripts/verify-sync.sh
-
-# Or check individual nodes
-curl -X POST -H "Content-Type: application/json" \
-  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
-  http://localhost:8545
-
-curl -X POST -H "Content-Type: application/json" \
-  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
-  http://localhost:8547
-
-curl -X POST -H "Content-Type: application/json" \
-  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
-  http://localhost:8549
-```
-
-### Stopping the Network
-
-```bash
-cd docker
-docker-compose down
-```
-
-### Complete Cleanup (Remove All Data)
-
-```bash
-cd docker
-docker-compose down -v
-docker volume rm docker_node1-data docker_node2-data docker_node3-data
-```
-
-### Viewing Container Logs
-
-```bash
-# All containers
-docker-compose logs -f
-
-# Specific node
-docker-compose logs -f eth-node1-validator
-docker-compose logs -f eth-node2-full
-docker-compose logs -f eth-node3-recovery
-```
-
-## 🔧 Troubleshooting
-
-### Nodes Not Starting
-
-**Problem**: Containers fail to start
-
-**Solution**:
-```bash
-# Check Docker is running
-docker ps
-
-# View logs
-docker-compose logs
-
-# Restart network
-docker-compose down
-bash ../scripts/init-network.sh
-```
-
-### Nodes Not Synchronizing
-
-**Problem**: Nodes show different block numbers
-
-**Solution**:
-```bash
-# Check peer connections
-docker exec eth-node1-validator geth attach --exec "admin.peers"
-docker exec eth-node2-full geth attach --exec "admin.peers"
-
-# Manually add peers (get enode from Node 1)
-NODE1_ENODE=$(docker exec eth-node1-validator geth attach --exec "admin.nodeInfo.enode")
-docker exec eth-node2-full geth attach --exec "admin.addPeer('$NODE1_ENODE')"
-```
-
-### Java Application Cannot Connect
-
-**Problem**: "Connection refused" errors
-
-**Solution**:
-```bash
-# Verify nodes are running
-docker ps
-
-# Check RPC is accessible
-curl http://localhost:8545
-curl http://localhost:8547
-curl http://localhost:8549
-
-# Restart containers
-docker-compose restart
-```
-
-### Maven Build Failures
-
-**Problem**: Compilation errors
-
-**Solution**:
-```bash
-# Clean and rebuild
-cd java-app
-mvn clean install -U
-
-# Verify JDK version
-java -version  # Should be 21+
-```
-
-### Port Already in Use
-
-**Problem**: "Address already in use" error
-
-**Solution**:
-```bash
-# Check what's using the ports
-netstat -tulpn | grep 8545
-netstat -tulpn | grep 8547
-netstat -tulpn | grep 8549
-
-# Kill existing processes or change ports in docker-compose.yml
-```
-
-## ✅ Expected Results
-
-### Immutability Verification
-
-- **Block Hashes**: All nodes report identical hash for same block number
-- **Transaction Order**: Transaction sequence is preserved across all nodes
-- **Historical Data**: Past blocks remain unchanged after Node 3 recovery
-
-### Synchronization Verification
-
-- **Block Propagation**: New blocks appear on all online nodes within 5-10 seconds
-- **Consistency**: Online nodes always have same block height (±1 block during mining)
-- **Peer Discovery**: Nodes automatically connect to each other
-
-### Fault Tolerance Verification
-
-- **Network Continuity**: Blockchain continues operating with Node 3 offline
-- **Automatic Recovery**: Node 3 synchronizes automatically upon restart
-- **No Data Loss**: Node 3 recovers all missed transactions and blocks
-- **State Consistency**: Final state matches across all nodes
-
-### Sample Output
-
-```
-========== Blockchain Synchronization Status ==========
-NODE1: Block #127
-NODE2: Block #127
-NODE3: Block #127
-=======================================================
-
-========== Verifying Block #127 Hash Consistency ==========
-NODE1: 0x7d2d8c9e4f6a1b3c5e8f9d2a4c6b8e1f3a5c7d9e2b4f6a8c1d3e5b7c9f1a3c5
-NODE2: 0x7d2d8c9e4f6a1b3c5e8f9d2a4c6b8e1f3a5c7d9e2b4f6a8c1d3e5b7c9f1a3c5
-NODE3: 0x7d2d8c9e4f6a1b3c5e8f9d2a4c6b8e1f3a5c7d9e2b4f6a8c1d3e5b7c9f1a3c5
-✓ All block hashes are CONSISTENT - Immutability verified!
-==========================================================
-```
-
-## 📊 Technical Details
-
-### Consensus Mechanism
-
-- **Algorithm**: Clique (Proof of Authority)
-- **Block Time**: 5 seconds
-- **Network ID**: 2025
-
-### Network Configuration
-
-- **Chain ID**: 2025
-- **Gas Limit**: 8,000,000
-- **Pre-funded Accounts**: 3 accounts with test Ether
-
-### Pre-funded Account Details
-
-| Address | Balance | Purpose |
-|---------|---------|---------|
-| 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 | Large amount | Transaction sender |
-| 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 | Large amount | Transaction recipient |
-| 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC | Large amount | Reserved |
-
-## 🔒 Security Notes
-
-- This is a **private test network** for educational purposes only
-- Private keys are publicly known (from Hardhat test accounts)
-- **Never use these accounts on mainnet or with real funds**
-
-## 📝 License
-
-Educational/Research Project
-
-## 🤝 Contributing
-
-This is an educational demonstration project. Feel free to modify and adapt for your learning needs.
 
 ---
 
-**Happy Experimenting! 🚀**
+## API Endpoints
+
+Swagger UI đầy đủ tại: `http://localhost:8080/swagger-ui.html`
+
+### Blockchain
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| GET | `/api/blockchain/nodes` | Thông tin tất cả 5 node |
+| GET | `/api/blockchain/nodes/{nodeName}` | Thông tin 1 node (node1..node5) |
+| GET | `/api/blockchain/sync-status` | Trạng thái đồng bộ toàn mạng |
+| GET | `/api/blockchain/block/{number}` | Chi tiết block theo số |
+| GET | `/api/blockchain/block/latest` | Block mới nhất |
+
+### Tài khoản
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| GET | `/api/accounts` | Danh sách tài khoản |
+| POST | `/api/accounts/create` | Tạo tài khoản mới |
+| GET | `/api/accounts/{address}/balance` | Số dư ETH |
+
+### Giao dịch
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| POST | `/api/transactions/send` | Gửi ETH |
+| GET | `/api/transactions/{txHash}` | Chi tiết giao dịch |
+| GET | `/api/transactions/history/{address}` | Lịch sử giao dịch của address |
+
+### Thực nghiệm
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| GET | `/api/experiments/network-status` | TN1 — Trạng thái mạng |
+| POST | `/api/experiments/send-transaction` | TN2/TN3 — Gửi TX và mine |
+| GET | `/api/experiments/immutability` | TN4 — Kiểm tra bất biến |
+| GET | `/api/experiments/data-integrity` | TN5 — Toàn vẹn dữ liệu |
+| GET | `/api/experiments/traceability` | TN6 — Truy vết giao dịch |
+| POST | `/api/experiments/performance-test` | TN7 — Hiệu năng batch TX |
+| GET | `/api/experiments/sync-test` | TN10 — Đồng bộ tổng hợp |
+
+---
+
+## Tài khoản được nạp sẵn ETH
+
+Dùng cho thực nghiệm — **không dùng trên mainnet**.
+
+| Địa chỉ | Vai trò |
+|---------|---------|
+| `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` | Validator / Người gửi |
+| `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` | Người nhận |
+| `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC` | Dự phòng |
+
+---
+
+## Xử lý sự cố
+
+### Nodes không kết nối với nhau (peerCount = 0)
+
+```bash
+# Kiểm tra static-nodes.json đã được mount đúng chưa
+docker exec eth-node1-validator cat /root/.ethereum/static-nodes.json
+
+# Xem peers hiện tại của node1
+docker exec eth-node1-validator geth attach --exec "admin.peers" /root/.ethereum/geth.ipc
+```
+
+### Backend không kết nối được Ethereum node
+
+```bash
+# Kiểm tra RPC node1 phản hồi
+curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+  http://localhost:8545
+
+# Kiểm tra file cấu hình
+cat java-app/src/main/resources/application.properties
+```
+
+### Maven build lỗi
+
+```bash
+cd java-app
+
+# Xóa cache và build lại
+mvn clean install -U -DskipTests
+
+# Kiểm tra phiên bản Java (cần >= 17)
+java -version
+```
+
+### Port đã bị chiếm
+
+```bash
+# Kiểm tra port 8080 (Linux/macOS)
+lsof -i :8080
+
+# Windows
+netstat -ano | findstr :8080
+```
+
+### Reset toàn bộ dữ liệu blockchain
+
+```bash
+docker compose down -v
+docker compose up --build -d
+```
+
+---
+
+## Thông tin kỹ thuật
+
+| Thành phần | Chi tiết |
+|------------|---------|
+| Ethereum client | Geth v1.13.15-stable |
+| Consensus | Clique Proof-of-Authority |
+| Chain ID / Network ID | 2025 |
+| Block time | 5 giây |
+| Gas limit | 8,000,000 |
+| Backend | Spring Boot 3.3.5 + Web3j 4.10.3 |
+| Java | 17 (compile) |
+| Frontend | React 18 + Vite |
+| Swagger | springdoc-openapi 2.5.0 |

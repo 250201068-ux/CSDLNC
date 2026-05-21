@@ -32,6 +32,16 @@ public class EthereumNodeRepository {
 
     private final Map<String, Web3j> nodes = new LinkedHashMap<>();
 
+    public EthereumNodeRepository() {
+        this(
+            "http://localhost:8545",
+            "http://localhost:8547",
+            "http://localhost:8549",
+            "http://localhost:8551",
+            "http://localhost:8553"
+        );
+    }
+
     public EthereumNodeRepository(
             @org.springframework.beans.factory.annotation.Value("${ethereum.node1.url:http://localhost:8545}") String node1Url,
             @org.springframework.beans.factory.annotation.Value("${ethereum.node2.url:http://localhost:8547}") String node2Url,
